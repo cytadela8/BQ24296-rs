@@ -284,7 +284,7 @@ impl ChargeCurrentControlRegister {
         self.set_BCOLD(0);
     }
 
-    pub fn is_boost_convert_low_temp_m20(&self) -> bool {
+    pub fn is_boost_converter_low_temp_m20(&self) -> bool {
         self.BCOLD() == 1
     }
 
@@ -324,7 +324,7 @@ impl PreChargeTerminationCurrentControlRegister {
     }
 
     pub fn get_precharge_current_mA(&self) -> u32 {
-        (self.IPRECHG() as u32 * 128).min(128)
+        (self.IPRECHG() as u32 * 128).max(128)
     }
 
     pub fn set_precharge_current_mA(&mut self, current: u32) {

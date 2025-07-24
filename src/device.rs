@@ -31,6 +31,7 @@ impl<I2C: I2c> BQ24296<I2C> {
         f(&mut register);
         self.write(register)
     }
+
 }
 
 #[cfg(test)]
