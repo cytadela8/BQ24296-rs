@@ -13,6 +13,21 @@ pub enum InputCurrentLimit {
     mA_3000 = 7,
 }
 
+impl InputCurrentLimit {
+    pub fn as_mA(self) -> u32 {
+        match self {
+            InputCurrentLimit::mA_100 => 100,
+            InputCurrentLimit::mA_150 => 150,
+            InputCurrentLimit::mA_500 => 500,
+            InputCurrentLimit::mA_900 => 900,
+            InputCurrentLimit::mA_1000 => 1000,
+            InputCurrentLimit::mA_1500 => 1500,
+            InputCurrentLimit::mA_2000 => 2000,
+            InputCurrentLimit::mA_3000 => 3000,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum VbusStatus {
     Unknown = 0,
@@ -53,12 +68,34 @@ pub enum WatchdogTimer {
     Seconds160 = 3,
 }
 
+impl WatchdogTimer {
+    pub fn as_seconds(self) -> u32 {
+        match self {
+            WatchdogTimer::Disabled => 0,
+            WatchdogTimer::Seconds40 => 40,
+            WatchdogTimer::Seconds80 => 80,
+            WatchdogTimer::Seconds160 => 160,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ChargeTimer {
     Hours5 = 0,
     Hours8 = 1,
     Hours12 = 2,
     Hours20 = 3,
+}
+
+impl ChargeTimer {
+    pub fn as_hours(self) -> u32 {
+        match self {
+            ChargeTimer::Hours5 => 5,
+            ChargeTimer::Hours8 => 8,
+            ChargeTimer::Hours12 => 12,
+            ChargeTimer::Hours20 => 20,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -69,12 +106,68 @@ pub enum ThermalRegulationThreshold {
     Celsius120 = 3,
 }
 
+impl ThermalRegulationThreshold {
+    pub fn as_celsius(self) -> u32 {
+        match self {
+            ThermalRegulationThreshold::Celsius60 => 60,
+            ThermalRegulationThreshold::Celsius80 => 80,
+            ThermalRegulationThreshold::Celsius100 => 100,
+            ThermalRegulationThreshold::Celsius120 => 120,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BoostHotThreshold {
-    Celsius55 = 0,  // Vbhot1
-    Celsius60 = 1,  // Vbhot0
-    Celsius65 = 2,  // Vbhot2
+    Celsius55 = 0, // Vbhot1
+    Celsius60 = 1, // Vbhot0
+    Celsius65 = 2, // Vbhot2
     Disabled = 3,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BoostCurrentLimit {
+    mA_1000 = 0,
+    mA_1500 = 1,
+}
+
+impl BoostCurrentLimit {
+    pub fn as_mA(self) -> u32 {
+        match self {
+            BoostCurrentLimit::mA_1000 => 1000,
+            BoostCurrentLimit::mA_1500 => 1500,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BatteryLowVoltageThreshold {
+    mV_2800 = 0,
+    mV_3000 = 1,
+}
+
+impl BatteryLowVoltageThreshold {
+    pub fn as_mV(self) -> u32 {
+        match self {
+            BatteryLowVoltageThreshold::mV_2800 => 2800,
+            BatteryLowVoltageThreshold::mV_3000 => 3000,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BatteryRechargeThreshold {
+    mV_100 = 0,
+    mV_300 = 1,
+}
+
+impl BatteryRechargeThreshold {
+    pub fn as_mV(self) -> u32 {
+        match self {
+            BatteryRechargeThreshold::mV_100 => 100,
+            BatteryRechargeThreshold::mV_300 => 300,
+        }
+    }
 }
 
 pub trait RegisterTrait<const N: usize>: RegisterAddress + From<[u8; N]> + Into<[u8; N]> {}
@@ -85,19 +178,28 @@ pub trait RegisterAddress {
 
 macro_rules! impl_simple_register_traits {
     ($ty:ident, $addr:expr) => {
-        impl RegisterAddress for $ty { const ADDRESS: u8 = $addr; }
-        impl From<[u8; 1]> for $ty { fn from(value: [u8; 1]) -> Self { Self::from(value[0]) } }
-        impl Into<[u8; 1]> for $ty { fn into(self) -> [u8; 1] { [ self.into() ] } }
+        impl RegisterAddress for $ty {
+            const ADDRESS: u8 = $addr;
+        }
+        impl From<[u8; 1]> for $ty {
+            fn from(value: [u8; 1]) -> Self {
+                Self::from(value[0])
+            }
+        }
+        impl Into<[u8; 1]> for $ty {
+            fn into(self) -> [u8; 1] {
+                [self.into()]
+            }
+        }
         impl RegisterTrait<1> for $ty {}
     };
 }
-
 
 #[bitfield(u8, from = true, debug = true)]
 #[derive(Clone, Copy)]
 pub struct InputSourceControlRegister {
     #[bits(3)]
-    IINLIM:  u8,
+    IINLIM: u8,
 
     #[bits(4)]
     VINDPM: u8,
@@ -141,30 +243,7 @@ impl InputSourceControlRegister {
     }
 
     pub fn get_input_current_limit_mA(&self) -> u32 {
-        match self.get_input_current_limit() {
-            InputCurrentLimit::mA_100 => 100,
-            InputCurrentLimit::mA_150 => 150,
-            InputCurrentLimit::mA_500 => 500,
-            InputCurrentLimit::mA_900 => 900,
-            InputCurrentLimit::mA_1000 => 1000,
-            InputCurrentLimit::mA_1500 => 1500,
-            InputCurrentLimit::mA_2000 => 2000,
-            InputCurrentLimit::mA_3000 => 3000,
-        }
-    }
-
-    pub fn set_input_current_limit_mA(&mut self, current: u32) {
-        let limit = match current {
-            0..=100 => InputCurrentLimit::mA_100,
-            101..=150 => InputCurrentLimit::mA_150,
-            151..=500 => InputCurrentLimit::mA_500,
-            501..=900 => InputCurrentLimit::mA_900,
-            901..=1000 => InputCurrentLimit::mA_1000,
-            1001..=1500 => InputCurrentLimit::mA_1500,
-            1501..=2000 => InputCurrentLimit::mA_2000,
-            _ => InputCurrentLimit::mA_3000,
-        };
-        self.set_input_current_limit(limit);
+        self.get_input_current_limit().as_mA()
     }
 }
 
@@ -189,24 +268,23 @@ pub struct PowerOnConfigurationRegister {
     I2C_WATCHDOG_RESET: u8,
 
     #[bits(1)]
-    REGISTER_RESET: u8
+    REGISTER_RESET: u8,
 }
 
 impl PowerOnConfigurationRegister {
-    pub fn get_boost_current_limit_mA(&self) -> u32 {
+    pub fn get_boost_current_limit(&self) -> BoostCurrentLimit {
         match self.BOOST_LIM() {
-            0 => 1000,
-            _ => 1500
+            0 => BoostCurrentLimit::mA_1000,
+            _ => BoostCurrentLimit::mA_1500,
         }
     }
 
-    pub fn set_boost_current_limit_mA(&mut self, current: u32) {
-        let register_value = match current {
-            0..1000 => 0,
-            _ => 1
-        };
+    pub fn set_boost_current_limit(&mut self, limit: BoostCurrentLimit) {
+        self.set_BOOST_LIM(limit as u8);
+    }
 
-        self.set_BOOST_LIM(register_value as u8);
+    pub fn get_boost_current_limit_mA(&self) -> u32 {
+        self.get_boost_current_limit().as_mA()
     }
 
     pub fn get_system_min_bus_voltage_mV(&self) -> u32 {
@@ -310,7 +388,7 @@ pub struct PreChargeTerminationCurrentControlRegister {
     _reserved: u8,
 
     #[bits(4)]
-    IPRECHG: u8
+    IPRECHG: u8,
 }
 
 impl PreChargeTerminationCurrentControlRegister {
@@ -345,7 +423,7 @@ pub struct ChargeVoltageControlRegister {
     BATLOW: u8,
 
     #[bits(6)]
-    VREG: u8
+    VREG: u8,
 }
 
 impl ChargeVoltageControlRegister {
@@ -358,20 +436,34 @@ impl ChargeVoltageControlRegister {
         self.set_VREG(value);
     }
 
-    pub fn get_battery_low_voltage_threshold_mV(&self) -> u32 {
-        if self.BATLOW() == 0 { 2800 } else { 3000 }
+    pub fn get_battery_low_voltage_threshold(&self) -> BatteryLowVoltageThreshold {
+        match self.BATLOW() {
+            0 => BatteryLowVoltageThreshold::mV_2800,
+            _ => BatteryLowVoltageThreshold::mV_3000,
+        }
     }
 
-    pub fn set_battery_low_voltage_threshold_mV(&mut self, voltage: u32) {
-        self.set_BATLOW(if voltage <= 2800 { 0 } else { 1 });
+    pub fn set_battery_low_voltage_threshold(&mut self, threshold: BatteryLowVoltageThreshold) {
+        self.set_BATLOW(threshold as u8);
+    }
+
+    pub fn get_battery_low_voltage_threshold_mV(&self) -> u32 {
+        self.get_battery_low_voltage_threshold().as_mV()
+    }
+
+    pub fn get_battery_recharge_threshold(&self) -> BatteryRechargeThreshold {
+        match self.VRECHG() {
+            0 => BatteryRechargeThreshold::mV_100,
+            _ => BatteryRechargeThreshold::mV_300,
+        }
+    }
+
+    pub fn set_battery_recharge_threshold(&mut self, threshold: BatteryRechargeThreshold) {
+        self.set_VRECHG(threshold as u8);
     }
 
     pub fn get_battery_recharge_threshold_mV(&self) -> u32 {
-        if self.VRECHG() == 0 { 100 } else { 300 }
-    }
-
-    pub fn set_battery_recharge_threshold_mV(&mut self, threshold: u32) {
-        self.set_VRECHG(if threshold <= 100 { 0 } else { 1 });
+        self.get_battery_recharge_threshold().as_mV()
     }
 }
 
@@ -426,22 +518,7 @@ impl ChargeTerminationTimerControlRegister {
     }
 
     pub fn get_watchdog_timer_seconds(&self) -> u32 {
-        match self.get_watchdog_timer() {
-            WatchdogTimer::Disabled => 0,
-            WatchdogTimer::Seconds40 => 40,
-            WatchdogTimer::Seconds80 => 80,
-            WatchdogTimer::Seconds160 => 160,
-        }
-    }
-
-    pub fn set_watchdog_timer_seconds(&mut self, seconds: u32) {
-        let timer = match seconds {
-            0 => WatchdogTimer::Disabled,
-            1..=40 => WatchdogTimer::Seconds40,
-            41..=80 => WatchdogTimer::Seconds80,
-            _ => WatchdogTimer::Seconds160,
-        };
-        self.set_watchdog_timer(timer);
+        self.get_watchdog_timer().as_seconds()
     }
 
     pub fn is_safety_timer_enabled(&self) -> bool {
@@ -470,22 +547,7 @@ impl ChargeTerminationTimerControlRegister {
     }
 
     pub fn get_charge_timer_hours(&self) -> u32 {
-        match self.get_charge_timer() {
-            ChargeTimer::Hours5 => 5,
-            ChargeTimer::Hours8 => 8,
-            ChargeTimer::Hours12 => 12,
-            ChargeTimer::Hours20 => 20,
-        }
-    }
-
-    pub fn set_charge_timer_hours(&mut self, hours: u32) {
-        let timer = match hours {
-            0..=5 => ChargeTimer::Hours5,
-            6..=8 => ChargeTimer::Hours8,
-            9..=12 => ChargeTimer::Hours12,
-            _ => ChargeTimer::Hours20,
-        };
-        self.set_charge_timer(timer);
+        self.get_charge_timer().as_hours()
     }
 }
 
@@ -501,7 +563,7 @@ pub struct BoostVoltageThermalRegulationRegister {
     BHOT: u8,
 
     #[bits(4)]
-    BOOSTV: u8
+    BOOSTV: u8,
 }
 
 impl BoostVoltageThermalRegulationRegister {
@@ -541,22 +603,7 @@ impl BoostVoltageThermalRegulationRegister {
     }
 
     pub fn get_thermal_regulation_threshold_celsius(&self) -> u32 {
-        match self.get_thermal_regulation_threshold() {
-            ThermalRegulationThreshold::Celsius60 => 60,
-            ThermalRegulationThreshold::Celsius80 => 80,
-            ThermalRegulationThreshold::Celsius100 => 100,
-            ThermalRegulationThreshold::Celsius120 => 120,
-        }
-    }
-
-    pub fn set_thermal_regulation_threshold_celsius(&mut self, temp: u32) {
-        let threshold = match temp {
-            0..=60 => ThermalRegulationThreshold::Celsius60,
-            61..=80 => ThermalRegulationThreshold::Celsius80,
-            81..=100 => ThermalRegulationThreshold::Celsius100,
-            _ => ThermalRegulationThreshold::Celsius120,
-        };
-        self.set_thermal_regulation_threshold(threshold);
+        self.get_thermal_regulation_threshold().as_celsius()
     }
 }
 
@@ -843,16 +890,27 @@ pub struct ConfigurationRegisters {
     pub CVCR: ChargeVoltageControlRegister,
     pub CTTCR: ChargeTerminationTimerControlRegister,
     pub BVTRR: BoostVoltageThermalRegulationRegister,
-    pub MOCR: MiscOperationControlRegister
+    pub MOCR: MiscOperationControlRegister,
 }
 
-impl_register_traits_for_sets!(ConfigurationRegisters, 0, ISCR, POCR, CCCR, PCTCCR, CVCR, CTTCR, BVTRR, MOCR);
+impl_register_traits_for_sets!(
+    ConfigurationRegisters,
+    0,
+    ISCR,
+    POCR,
+    CCCR,
+    PCTCCR,
+    CVCR,
+    CTTCR,
+    BVTRR,
+    MOCR
+);
 
 #[derive(Debug)]
 pub struct StatusRegisters {
     pub SSR: SystemStatusRegister,
     pub NFR: NewFaultRegister,
-    pub VPRR: VendorPartRevisionRegister
+    pub VPRR: VendorPartRevisionRegister,
 }
 
 impl_register_traits_for_sets!(StatusRegisters, 8, SSR, NFR, VPRR);
